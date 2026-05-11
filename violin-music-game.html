@@ -98,7 +98,7 @@
   }
   .opt-btn {
     font-family: inherit;
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: bold;
     padding: 18px 8px;
     border: 4px solid #fff;
@@ -256,7 +256,7 @@
   /* 响应式 */
   @media (max-width: 520px) {
     h1 { font-size: 2rem; }
-    .opt-btn { font-size: 1.4rem; padding: 14px 6px; }
+    .opt-btn { font-size: 1.3rem; padding: 14px 6px; }
     .btn { font-size: 1.05rem; min-width: 120px; padding: 12px 18px; }
   }
 </style>
@@ -267,72 +267,57 @@
 <script>
 /* ========================================================================
    五线谱小冒险 —— 小提琴版认谱游戏
-   作者注释（中文）：
-   - 所有逻辑全部写在一个文件里，方便分发
-   - 五线谱用 SVG 绘制；音符位置由 NOTES 库统一配置
-   - 如需新增音符：在 NOTES 数组里加一项即可（见下方 NOTES 注释）
-   - 难度等级：在 LEVELS 里配置每个难度使用的音符 id
+   所有选项都用中文唱名（do re mi fa sol la si）。
+   英文音名仅作为内部 id，小朋友看不到。
    ======================================================================== */
 
 /* -------- 1. 音符库 --------
-   line: 在五线谱上的“位置序号”
-     约定（坐标系，与音乐书一致）：
-       line=0  -> 第一线（最下面那条线）E4
-       line=0.5-> 第一线上方的间 F4
-       line=1  -> 第二线 G4
-       line=1.5-> 第二间 A4
-       line=2  -> 第三线 B4
-       line=2.5-> 第三间 C5
-       line=3  -> 第四线 D5
-       line=3.5-> 第四间 E5
-       line=4  -> 第五线 F5
-       line=4.5-> 第五线上方的间 G5
-       line=-0.5-> 第一线下方的间 D4
-       line=-1 -> 下加一线 C4（中央C）
-       line=-1.5-> 下加一线下方的间 B3
-       line=-2 -> 下加二线 A3
-       line=-2.5-> 下加二线下方的间 G3（小提琴G弦空弦）
+   line: 五线谱上的位置序号
+     0  = 第一线 E4
+     0.5 = 第一线上面的间…以此类推
+     -2.5 = 下加二线下面的间（G 弦空弦）
+   solfege: 唱名（选项上显示的文字）—— 以 C 大调为 do 的固定唱名
    acc: 升降号 '#' / 'b' / null
-   finger: 小提琴指法说明（提示用）
+   finger: 小提琴指法说明（提示按钮用）
 */
 const NOTES = [
-  // —— 低音区（G弦） ——
-  { id: 'G3', name: 'G', line: -2.5, acc: null, finger: 'G弦 空弦（不按指）', pal: '🦁' },
-  { id: 'A3', name: 'A', line: -2,   acc: null, finger: 'G弦 1指',           pal: '🐻' },
-  { id: 'B3', name: 'B', line: -1.5, acc: null, finger: 'G弦 2指',           pal: '🐼' },
-  { id: 'C4', name: 'C', line: -1,   acc: null, finger: 'G弦 3指（中央C）',  pal: '🐯' },
-  // —— D弦 ——
-  { id: 'D4', name: 'D', line: -0.5, acc: null, finger: 'D弦 空弦',          pal: '🦊' },
-  { id: 'E4', name: 'E', line: 0,    acc: null, finger: 'D弦 1指',           pal: '🐰' },
-  { id: 'F4', name: 'F', line: 0.5,  acc: null, finger: 'D弦 2指（低把/F）', pal: '🐹' },
-  { id: 'G4', name: 'G', line: 1,    acc: null, finger: 'D弦 3指',           pal: '🐶' },
-  // —— A弦 ——
-  { id: 'A4', name: 'A', line: 1.5,  acc: null, finger: 'A弦 空弦',          pal: '🐱' },
-  { id: 'B4', name: 'B', line: 2,    acc: null, finger: 'A弦 1指',           pal: '🐨' },
-  { id: 'C5', name: 'C', line: 2.5,  acc: null, finger: 'A弦 2指（高把/C）', pal: '🦄' },
-  { id: 'D5', name: 'D', line: 3,    acc: null, finger: 'A弦 3指',           pal: '🐲' },
-  // —— E弦 ——
-  { id: 'E5', name: 'E', line: 3.5,  acc: null, finger: 'E弦 空弦',          pal: '🦉' },
-  { id: 'F5', name: 'F', line: 4,    acc: null, finger: 'E弦 1指',           pal: '🐧' },
-  { id: 'G5', name: 'G', line: 4.5,  acc: null, finger: 'E弦 2指',           pal: '🦋' },
+  // —— 低音区（G 弦）——
+  { id: 'G3', solfege: 'sol低', line: -2.5, acc: null, finger: 'G弦 空弦（不按指）' },
+  { id: 'A3', solfege: 'la低',  line: -2,   acc: null, finger: 'G弦 1指' },
+  { id: 'B3', solfege: 'si低',  line: -1.5, acc: null, finger: 'G弦 2指' },
+  { id: 'C4', solfege: 'do',     line: -1,   acc: null, finger: 'G弦 3指（中央 do）' },
+  // —— D 弦 ——
+  { id: 'D4', solfege: 're',     line: -0.5, acc: null, finger: 'D弦 空弦' },
+  { id: 'E4', solfege: 'mi',     line: 0,    acc: null, finger: 'D弦 1指' },
+  { id: 'F4', solfege: 'fa',     line: 0.5,  acc: null, finger: 'D弦 2指（低把/fa）' },
+  { id: 'G4', solfege: 'sol',    line: 1,    acc: null, finger: 'D弦 3指' },
+  // —— A 弦 ——
+  { id: 'A4', solfege: 'la',     line: 1.5,  acc: null, finger: 'A弦 空弦' },
+  { id: 'B4', solfege: 'si',     line: 2,    acc: null, finger: 'A弦 1指' },
+  { id: 'C5', solfege: 'do高',  line: 2.5,  acc: null, finger: 'A弦 2指（高把/do）' },
+  { id: 'D5', solfege: 're高',  line: 3,    acc: null, finger: 'A弦 3指' },
+  // —— E 弦 ——
+  { id: 'E5', solfege: 'mi高',  line: 3.5,  acc: null, finger: 'E弦 空弦' },
+  { id: 'F5', solfege: 'fa高',  line: 4,    acc: null, finger: 'E弦 1指' },
+  { id: 'G5', solfege: 'sol高', line: 4.5,  acc: null, finger: 'E弦 2指' },
 
-  // —— 升降号版本（用于挑战峰）——
-  { id: 'Fs4', name: 'F#', line: 0.5, acc: '#', finger: 'D弦 2指（高把/升F）', pal: '🐹' },
-  { id: 'Cs5', name: 'C#', line: 2.5, acc: '#', finger: 'A弦 2指（高把/升C）', pal: '🦄' },
-  { id: 'Bb4', name: 'Bb', line: 2,   acc: 'b', finger: 'A弦 1指（低把/降B）', pal: '🐨' },
-  { id: 'Eb4', name: 'Eb', line: 0,   acc: 'b', finger: 'D弦 1指（低把/降E）', pal: '🐰' },
+  // —— 升降号版本（挑战峰用）——
+  { id: 'Fs4', solfege: '升fa',   line: 0.5, acc: '#', finger: 'D弦 2指（高把/升fa）' },
+  { id: 'Cs5', solfege: '升do高', line: 2.5, acc: '#', finger: 'A弦 2指（高把/升do）' },
+  { id: 'Bb4', solfege: '降si',   line: 2,   acc: 'b', finger: 'A弦 1指（低把/降si）' },
+  { id: 'Eb4', solfege: '降mi',   line: 0,   acc: 'b', finger: 'D弦 1指（低把/降mi）' },
 ];
 
 /* -------- 2. 难度配置 -------- */
 const LEVELS = {
   easy: {
     title: '🌱 新手村',
-    desc: '只考小提琴四根空弦：G、D、A、E',
+    desc: '只考小提琴四根空弦：sol低、re、la、mi高',
     pool: ['G3','D4','A4','E5']
   },
   mid: {
     title: '🌟 进阶岛',
-    desc: '第一把位 G 大调常用音',
+    desc: '第一把位常用音（do re mi fa sol la si）',
     pool: ['G3','A3','B3','C4','D4','E4','F4','G4','A4','B4','C5','D5','E5','F5','G5']
   },
   hard: {
@@ -394,26 +379,22 @@ function beep(freq, duration, type='sine', vol=0.2) {
   o.start(now);
   o.stop(now + duration + 0.02);
 }
-// 答对：清脆“叮”
 function sndCorrect() {
   beep(1320, 0.18, 'triangle', 0.25);
   setTimeout(()=>beep(1760, 0.22, 'triangle', 0.2), 90);
 }
-// 答错：温柔提示
 function sndWrong() {
   beep(380, 0.18, 'sine', 0.18);
   setTimeout(()=>beep(300, 0.22, 'sine', 0.16), 130);
 }
-// 点击音
 function sndClick() { beep(880, 0.06, 'square', 0.08); }
 
-/* -------- 6. 背景音乐（简易合成的轻柔循环） -------- */
+/* -------- 6. 背景音乐 -------- */
 let bgmTimer = null;
 function startBGM() {
   stopBGM();
   const ctx = ensureAudio();
   if (!ctx) return;
-  // 一段简单的 C 大调循环音符
   const melody = [523.25, 659.25, 783.99, 659.25, 587.33, 523.25, 659.25, 493.88];
   let i = 0;
   const play = () => {
@@ -430,31 +411,22 @@ function stopBGM() {
 }
 
 /* -------- 7. 五线谱 SVG 绘制 -------- */
-/**
- * 绘制带高音谱号的五线谱，并把指定音符放在正确位置
- */
 function drawStaff(note) {
   const W = 520, H = 240;
-  const lineGap = 14;        // 半步像素距（line 单位 = 半步）
-  const baseY = 170;         // 第一线（line=0, E4）的 y
+  const lineGap = 14;
+  const baseY = 170;
   const yPos = (l) => baseY - l * lineGap;
-
-  // 五线 y 坐标
   const lines = [0,1,2,3,4].map(i => yPos(i));
-
   const noteX = 320;
   const noteY = yPos(note.line);
 
-  // 加线：在整数线位置且超出五线时绘制
   let ledgers = '';
-  // 下方加线
   for (let l = -1; l >= note.line; l--) {
     if (Number.isInteger(l)) {
       const y = yPos(l);
       ledgers += `<line x1="${noteX-18}" y1="${y}" x2="${noteX+18}" y2="${y}" stroke="#5a3a7a" stroke-width="2.5" stroke-linecap="round"/>`;
     }
   }
-  // 上方加线
   for (let l = 5; l <= note.line; l++) {
     if (Number.isInteger(l)) {
       const y = yPos(l);
@@ -462,7 +434,6 @@ function drawStaff(note) {
     }
   }
 
-  // 升降号
   let accidental = '';
   if (note.acc === '#') {
     accidental = `<text x="${noteX-30}" y="${noteY+8}" font-size="32" font-weight="bold" fill="#5a3a7a" text-anchor="middle">♯</text>`;
@@ -470,7 +441,6 @@ function drawStaff(note) {
     accidental = `<text x="${noteX-30}" y="${noteY+8}" font-size="32" font-weight="bold" fill="#5a3a7a" text-anchor="middle">♭</text>`;
   }
 
-  // 音符头：椭圆 + 笑脸（拟人化）
   const noteHead = `
     <g transform="translate(${noteX} ${noteY}) rotate(-18)">
       <ellipse cx="0" cy="0" rx="13" ry="9.5" fill="#d63384" stroke="#7a1f55" stroke-width="1.5"/>
@@ -482,7 +452,6 @@ function drawStaff(note) {
     </g>
   `;
 
-  // 符干：低音区朝上，高音区朝下
   let stem = '';
   if (note.line < 2) {
     stem = `<line x1="${noteX+12}" y1="${noteY-2}" x2="${noteX+12}" y2="${noteY-55}" stroke="#7a1f55" stroke-width="2.5" stroke-linecap="round"/>`;
@@ -490,15 +459,12 @@ function drawStaff(note) {
     stem = `<line x1="${noteX-12}" y1="${noteY+2}" x2="${noteX-12}" y2="${noteY+55}" stroke="#7a1f55" stroke-width="2.5" stroke-linecap="round"/>`;
   }
 
-  // 高音谱号（用 Unicode 𝄞）
   const clef = `<text x="30" y="${yPos(2)+34}" font-size="110" fill="#7b3fa0" font-family="serif">𝄞</text>`;
 
-  // 五线
   const staffLines = lines.map(y =>
     `<line x1="15" y1="${y}" x2="${W-15}" y2="${y}" stroke="#5a3a7a" stroke-width="2" stroke-linecap="round"/>`
   ).join('');
 
-  // 左右竖线
   const barLines = `
     <line x1="15"    y1="${lines[0]}" x2="15"    y2="${lines[4]}" stroke="#5a3a7a" stroke-width="2"/>
     <line x1="${W-15}" y1="${lines[0]}" x2="${W-15}" y2="${lines[4]}" stroke="#5a3a7a" stroke-width="3"/>
@@ -518,7 +484,7 @@ function drawStaff(note) {
   </svg>`;
 }
 
-/* -------- 8. 主渲染函数 -------- */
+/* -------- 8. 主渲染 -------- */
 const $app = document.getElementById('app');
 
 function render() {
@@ -527,7 +493,6 @@ function render() {
   if (state.screen === 'result') return renderResult();
 }
 
-/* 主页 */
 function renderHome() {
   stopBGM();
   const hi = {
@@ -573,7 +538,6 @@ function renderHome() {
   });
 }
 
-/* 游戏中 */
 function renderPlay() {
   const note = state.currentNote;
   const opts = state.options;
@@ -592,7 +556,7 @@ function renderPlay() {
 
       ${state.timerEnabled ? `<div class="timer"><div class="timer-bar" id="timer-bar" style="width:100%"></div></div>` : ''}
 
-      <h2>这个音符叫什么呢？🤔</h2>
+      <h2>这个音符唱什么呢？🤔</h2>
 
       <div class="options">
         ${opts.map((o)=>`<button class="opt-btn" data-opt="${o}">${o}</button>`).join('')}
@@ -622,7 +586,6 @@ function renderPlay() {
   if (state.timerEnabled) startTimer();
 }
 
-/* 结算 */
 function renderResult() {
   stopBGM();
   const correct = state.correctCount;
@@ -676,17 +639,22 @@ function nextQuestion() {
   stopTimer();
   state.locked = false;
   const pool = LEVELS[state.level].pool;
-  // 随机抽题
   const noteId = pool[Math.floor(Math.random()*pool.length)];
   const note = NOTES.find(n=>n.id===noteId);
   state.currentNote = note;
-  // 生成 4 个选项：正确答案 + 3 个干扰项（音名不重复）
-  const allNames = Array.from(new Set(NOTES.map(n => n.name)));
-  const correct = note.name;
-  const distractors = allNames.filter(n => n !== correct);
-  shuffle(distractors);
-  const opts = shuffle([correct, ...distractors.slice(0, 3)]);
-  state.options = opts;
+
+  // 生成 4 个唱名选项（不重复）
+  // 干扰项优先从当前难度的池子里抽，不够再从全集补
+  const correct = note.solfege;
+  const poolSolfege = Array.from(new Set(pool.map(id => NOTES.find(n=>n.id===id).solfege))).filter(s=>s!==correct);
+  shuffle(poolSolfege);
+  let opts = [correct, ...poolSolfege.slice(0,3)];
+  if (opts.length < 4) {
+    const extra = Array.from(new Set(NOTES.map(n=>n.solfege))).filter(s => !opts.includes(s));
+    shuffle(extra);
+    opts = opts.concat(extra.slice(0, 4 - opts.length));
+  }
+  state.options = shuffle(opts);
   render();
 }
 
@@ -695,7 +663,7 @@ function onAnswer(btn) {
   state.locked = true;
   stopTimer();
   const chosen = btn.dataset.opt;
-  const correct = state.currentNote.name;
+  const correct = state.currentNote.solfege;
   const fb = document.getElementById('feedback');
   $app.querySelectorAll('.opt-btn').forEach(b=>{
     b.disabled = true;
@@ -709,16 +677,14 @@ function onAnswer(btn) {
     state.correctCount += 1;
     sndCorrect();
     spawnFloaters(['🌟','💖','✨','🌟']);
-    // 让 SVG 音符跳一下
     const ng = document.getElementById('note-group');
     if (ng) ng.classList.add('bounce');
   } else {
     btn.classList.add('wrong');
-    fb.textContent = `🌸 没关系~ 正确答案是 ${correct}`;
+    fb.textContent = `🌸 没关系~ 正确答案是 「${correct}」`;
     fb.className = 'feedback bad';
     sndWrong();
   }
-  // 1.5 秒后下一题
   setTimeout(()=>{
     state.qIndex += 1;
     if (state.qIndex >= TOTAL_QUESTIONS) {
@@ -730,7 +696,6 @@ function onAnswer(btn) {
   }, 1500);
 }
 
-/* 倒计时 */
 function startTimer() {
   stopTimer();
   const bar = document.getElementById('timer-bar');
@@ -743,13 +708,13 @@ function startTimer() {
   state.timerHandle = setTimeout(()=>{
     if (state.locked) return;
     state.locked = true;
-    const correct = state.currentNote.name;
+    const correct = state.currentNote.solfege;
     $app.querySelectorAll('.opt-btn').forEach(b=>{
       b.disabled = true;
       if (b.dataset.opt === correct) b.classList.add('correct');
     });
     const fb = document.getElementById('feedback');
-    fb.textContent = `⏰ 时间到啦~ 正确答案是 ${correct}`;
+    fb.textContent = `⏰ 时间到啦~ 正确答案是 「${correct}」`;
     fb.className = 'feedback bad';
     sndWrong();
     setTimeout(()=>{
@@ -763,7 +728,7 @@ function stopTimer() {
   if (state.timerHandle) { clearTimeout(state.timerHandle); state.timerHandle = null; }
 }
 
-/* -------- 10. 辅助函数 -------- */
+/* -------- 10. 辅助 -------- */
 function shuffle(arr) {
   for (let i=arr.length-1;i>0;i--) {
     const j = Math.floor(Math.random()*(i+1));
@@ -772,7 +737,6 @@ function shuffle(arr) {
   return arr;
 }
 
-/* 飘浮的星星/爱心 */
 function spawnFloaters(emojis) {
   emojis.forEach((e,i)=>{
     setTimeout(()=>{
@@ -787,7 +751,6 @@ function spawnFloaters(emojis) {
   });
 }
 
-/* 满分撒花 */
 function spawnConfetti() {
   const colors = ['#ff8ac4','#b48dee','#7fe7c4','#ffd479','#ff7a7a','#8a5fd6'];
   for (let i=0;i<80;i++) {
