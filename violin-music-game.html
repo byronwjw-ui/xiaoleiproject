@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>五线谱小冒险 🎵</title>
+<style>
+  /* ===== 全局样式 ===== */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    font-family: "Comic Sans MS", "华文圆体", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #ffd6f0 0%, #e0c3fc 50%, #b8f2e6 100%);
+    color: #5a3a7a;
+    overflow-x: hidden;
+  }
+  #app {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  /* ===== 卡片容器 ===== */
+  .card {
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 28px;
+    padding: 32px 28px;
+    box-shadow: 0 12px 40px rgba(180, 120, 200, 0.25);
+    width: 100%;
+    max-width: 720px;
+    text-align: center;
+    backdrop-filter: blur(6px);
+  }
+
+  h1 {
+    font-size: 2.6rem;
+    color: #d63384;
+    text-shadow: 2px 2px 0 #fff, 4px 4px 0 rgba(214, 51, 132, 0.2);
+    margin-bottom: 8px;
+  }
+  h2 {
+    font-size: 1.6rem;
+    color: #7b3fa0;
+    margin: 10px 0 18px;
+  }
+  .subtitle {
+    font-size: 1.1rem;
+    color: #8a5fb3;
+    margin-bottom: 24px;
+  }
+
+  /* ===== 按钮 ===== */
+  .btn {
+    display: inline-block;
+    font-family: inherit;
+    font-size: 1.25rem;
+    font-weight: bold;
+    padding: 16px 26px;
+    margin: 10px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    color: white;
+    transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.12), 0 8px 18px rgba(0,0,0,0.1);
+    min-width: 140px;
+  }
+  .btn:hover { transform: translateY(-3px) scale(1.04); filter: brightness(1.05); }
+  .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.12); }
+  .btn-pink   { background: linear-gradient(180deg,#ff8ac4,#ff5fa8); }
+  .btn-purple { background: linear-gradient(180deg,#b48dee,#8a5fd6); }
+  .btn-mint   { background: linear-gradient(180deg,#7fe7c4,#3fc7a4); }
+  .btn-sun    { background: linear-gradient(180deg,#ffd479,#ffb347); }
+  .btn-sm { font-size: 1rem; padding: 10px 18px; min-width: 100px; }
+
+  .difficulty-group { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 10px; }
+  .difficulty-desc { font-size: 0.95rem; color: #7b3fa0; margin-bottom: 14px; }
+
+  /* ===== 五线谱区域 ===== */
+  .staff-wrap {
+    background: linear-gradient(180deg, #fffafd 0%, #fff0fa 100%);
+    border: 3px dashed #f9a8d4;
+    border-radius: 20px;
+    padding: 18px 10px 10px;
+    margin: 14px 0 20px;
+    position: relative;
+  }
+  svg.staff { width: 100%; max-width: 520px; height: auto; display: block; margin: 0 auto; }
+
+  /* ===== 选项按钮 ===== */
+  .options {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .opt-btn {
+    font-family: inherit;
+    font-size: 1.8rem;
+    font-weight: bold;
+    padding: 18px 8px;
+    border: 4px solid #fff;
+    border-radius: 18px;
+    cursor: pointer;
+    color: white;
+    background: linear-gradient(180deg,#b48dee,#8a5fd6);
+    transition: transform .15s ease, box-shadow .15s ease;
+    box-shadow: 0 6px 0 rgba(90,40,140,0.25);
+  }
+  .opt-btn:hover { transform: translateY(-3px) scale(1.05); }
+  .opt-btn.correct { background: linear-gradient(180deg,#7fe7c4,#3fc7a4); animation: pop .4s ease; }
+  .opt-btn.wrong   { background: linear-gradient(180deg,#ffb3b3,#ff7a7a); animation: shake .4s ease; }
+  .opt-btn:disabled { cursor: default; opacity: 0.85; }
+
+  /* ===== HUD 顶栏 ===== */
+  .hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 1.05rem;
+    color: #7b3fa0;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  .hud .pill {
+    background: white;
+    padding: 8px 14px;
+    border-radius: 18px;
+    box-shadow: 0 3px 0 rgba(180,120,200,0.2);
+  }
+
+  /* 进度条 */
+  .progress {
+    width: 100%;
+    height: 14px;
+    background: #f5e6f7;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 10px 0;
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg,#ff8ac4,#b48dee,#7fe7c4);
+    transition: width .4s ease;
+  }
+
+  /* 倒计时条 */
+  .timer {
+    height: 10px;
+    width: 100%;
+    background: #eee;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .timer-bar {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #7fe7c4, #ffd479, #ff7a7a);
+  }
+
+  /* 反馈文字 */
+  .feedback {
+    min-height: 36px;
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin: 8px 0;
+  }
+  .feedback.good { color: #2ea37a; }
+  .feedback.bad  { color: #c44; }
+
+  /* 提示框（小提琴指法） */
+  .hint-box {
+    background: #fff7d6;
+    border: 2px dashed #f3b96b;
+    border-radius: 14px;
+    padding: 10px 14px;
+    margin: 8px auto;
+    max-width: 460px;
+    color: #8a5a1a;
+    font-size: 1rem;
+    display: none;
+  }
+  .hint-box.show { display: block; animation: pop .35s ease; }
+
+  /* ===== 飘浮装饰动画 ===== */
+  .floater {
+    position: fixed;
+    pointer-events: none;
+    font-size: 2rem;
+    animation: floatUp 1.6s ease-out forwards;
+    z-index: 9999;
+  }
+  @keyframes floatUp {
+    0%   { transform: translateY(0) scale(0.6) rotate(0); opacity: 1; }
+    100% { transform: translateY(-220px) scale(1.4) rotate(40deg); opacity: 0; }
+  }
+  @keyframes pop {
+    0% { transform: scale(.7); }
+    60% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-6px); }
+    80% { transform: translateX(6px); }
+  }
+  @keyframes bounce {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-14px); }
+  }
+  .bounce { animation: bounce .6s ease 2; transform-origin: center; }
+
+  /* 满分撒花 */
+  .confetti {
+    position: fixed;
+    top: -20px;
+    width: 12px; height: 18px;
+    opacity: 0.9;
+    animation: fall linear forwards;
+    z-index: 9999;
+    border-radius: 3px;
+  }
+  @keyframes fall {
+    0%   { transform: translateY(-20px) rotate(0deg); }
+    100% { transform: translateY(110vh) rotate(720deg); }
+  }
+
+  /* 星星结算 */
+  .stars-row {
+    font-size: 3rem;
+    letter-spacing: 8px;
+    margin: 18px 0;
+  }
+  .star-on  { filter: drop-shadow(0 0 6px #ffd479); }
+  .star-off { filter: grayscale(1) opacity(0.35); }
+
+  /* 开关 */
+  .toggle-row {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    font-size: 0.95rem;
+    color: #7b3fa0;
+  }
+  .toggle-row label { cursor: pointer; user-select: none; }
+
+  /* 响应式 */
+  @media (max-width: 520px) {
+    h1 { font-size: 2rem; }
+    .opt-btn { font-size: 1.4rem; padding: 14px 6px; }
+    .btn { font-size: 1.05rem; min-width: 120px; padding: 12px 18px; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ========================================================================
+   五线谱小冒险 —— 小提琴版认谱游戏
+   作者注释（中文）：
+   - 所有逻辑全部写在一个文件里，方便分发
+   - 五线谱用 SVG 绘制；音符位置由 NOTES 库统一配置
+   - 如需新增音符：在 NOTES 数组里加一项即可（见下方 NOTES 注释）
+   - 难度等级：在 LEVELS 里配置每个难度使用的音符 id
+   ======================================================================== */
+
+/* -------- 1. 音符库 --------
+   line: 在五线谱上的“位置序号”
+     约定（坐标系，与音乐书一致）：
+       line=0  -> 第一线（最下面那条线）E4
+       line=0.5-> 第一线上方的间 F4
+       line=1  -> 第二线 G4
+       line=1.5-> 第二间 A4
+       line=2  -> 第三线 B4
+       line=2.5-> 第三间 C5
+       line=3  -> 第四线 D5
+       line=3.5-> 第四间 E5
+       line=4  -> 第五线 F5
+       line=4.5-> 第五线上方的间 G5
+       line=-0.5-> 第一线下方的间 D4
+       line=-1 -> 下加一线 C4（中央C）
+       line=-1.5-> 下加一线下方的间 B3
+       line=-2 -> 下加二线 A3
+       line=-2.5-> 下加二线下方的间 G3（小提琴G弦空弦）
+   acc: 升降号 '#' / 'b' / null
+   finger: 小提琴指法说明（提示用）
+*/
+const NOTES = [
+  // —— 低音区（G弦） ——
+  { id: 'G3', name: 'G', line: -2.5, acc: null, finger: 'G弦 空弦（不按指）', pal: '🦁' },
+  { id: 'A3', name: 'A', line: -2,   acc: null, finger: 'G弦 1指',           pal: '🐻' },
+  { id: 'B3', name: 'B', line: -1.5, acc: null, finger: 'G弦 2指',           pal: '🐼' },
+  { id: 'C4', name: 'C', line: -1,   acc: null, finger: 'G弦 3指（中央C）',  pal: '🐯' },
+  // —— D弦 ——
+  { id: 'D4', name: 'D', line: -0.5, acc: null, finger: 'D弦 空弦',          pal: '🦊' },
+  { id: 'E4', name: 'E', line: 0,    acc: null, finger: 'D弦 1指',           pal: '🐰' },
+  { id: 'F4', name: 'F', line: 0.5,  acc: null, finger: 'D弦 2指（低把/F）', pal: '🐹' },
+  { id: 'G4', name: 'G', line: 1,    acc: null, finger: 'D弦 3指',           pal: '🐶' },
+  // —— A弦 ——
+  { id: 'A4', name: 'A', line: 1.5,  acc: null, finger: 'A弦 空弦',          pal: '🐱' },
+  { id: 'B4', name: 'B', line: 2,    acc: null, finger: 'A弦 1指',           pal: '🐨' },
+  { id: 'C5', name: 'C', line: 2.5,  acc: null, finger: 'A弦 2指（高把/C）', pal: '🦄' },
+  { id: 'D5', name: 'D', line: 3,    acc: null, finger: 'A弦 3指',           pal: '🐲' },
+  // —— E弦 ——
+  { id: 'E5', name: 'E', line: 3.5,  acc: null, finger: 'E弦 空弦',          pal: '🦉' },
+  { id: 'F5', name: 'F', line: 4,    acc: null, finger: 'E弦 1指',           pal: '🐧' },
+  { id: 'G5', name: 'G', line: 4.5,  acc: null, finger: 'E弦 2指',           pal: '🦋' },
+
+  // —— 升降号版本（用于挑战峰）——
+  { id: 'Fs4', name: 'F#', line: 0.5, acc: '#', finger: 'D弦 2指（高把/升F）', pal: '🐹' },
+  { id: 'Cs5', name: 'C#', line: 2.5, acc: '#', finger: 'A弦 2指（高把/升C）', pal: '🦄' },
+  { id: 'Bb4', name: 'Bb', line: 2,   acc: 'b', finger: 'A弦 1指（低把/降B）', pal: '🐨' },
+  { id: 'Eb4', name: 'Eb', line: 0,   acc: 'b', finger: 'D弦 1指（低把/降E）', pal: '🐰' },
+];
+
+/* -------- 2. 难度配置 -------- */
+const LEVELS = {
+  easy: {
+    title: '🌱 新手村',
+    desc: '只考小提琴四根空弦：G、D、A、E',
+    pool: ['G3','D4','A4','E5']
+  },
+  mid: {
+    title: '🌟 进阶岛',
+    desc: '第一把位 G 大调常用音',
+    pool: ['G3','A3','B3','C4','D4','E4','F4','G4','A4','B4','C5','D5','E5','F5','G5']
+  },
+  hard: {
+    title: '🏆 挑战峰',
+    desc: '加入升降号 + 跨弦音',
+    pool: ['G3','A3','B3','C4','D4','E4','F4','Fs4','G4','A4','Bb4','B4','C5','Cs5','D5','E5','F5','G5','Eb4']
+  }
+};
+
+const TOTAL_QUESTIONS = 10;      // 每关题数
+const TIME_PER_Q     = 15;       // 每题秒数
+
+/* -------- 3. 全局状态 -------- */
+const state = {
+  screen: 'home',     // 'home' | 'play' | 'result'
+  level: null,
+  qIndex: 0,
+  score: 0,
+  correctCount: 0,
+  currentNote: null,
+  options: [],
+  locked: false,
+  timerEnabled: true,
+  bgmEnabled: false,
+  timerHandle: null,
+};
+
+/* -------- 4. 本地存储：最高分 -------- */
+function getHighScore(level) {
+  return parseInt(localStorage.getItem('vmg_high_' + level) || '0', 10);
+}
+function setHighScore(level, score) {
+  const prev = getHighScore(level);
+  if (score > prev) localStorage.setItem('vmg_high_' + level, String(score));
+}
+
+/* -------- 5. 音效（Web Audio API 合成） -------- */
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e) { audioCtx = null; }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function beep(freq, duration, type='sine', vol=0.2) {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = type;
+  o.frequency.value = freq;
+  g.gain.value = vol;
+  o.connect(g).connect(ctx.destination);
+  const now = ctx.currentTime;
+  g.gain.setValueAtTime(vol, now);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+  o.start(now);
+  o.stop(now + duration + 0.02);
+}
+// 答对：清脆“叮”
+function sndCorrect() {
+  beep(1320, 0.18, 'triangle', 0.25);
+  setTimeout(()=>beep(1760, 0.22, 'triangle', 0.2), 90);
+}
+// 答错：温柔提示
+function sndWrong() {
+  beep(380, 0.18, 'sine', 0.18);
+  setTimeout(()=>beep(300, 0.22, 'sine', 0.16), 130);
+}
+// 点击音
+function sndClick() { beep(880, 0.06, 'square', 0.08); }
+
+/* -------- 6. 背景音乐（简易合成的轻柔循环） -------- */
+let bgmTimer = null;
+function startBGM() {
+  stopBGM();
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  // 一段简单的 C 大调循环音符
+  const melody = [523.25, 659.25, 783.99, 659.25, 587.33, 523.25, 659.25, 493.88];
+  let i = 0;
+  const play = () => {
+    if (!state.bgmEnabled) return;
+    const f = melody[i % melody.length];
+    beep(f, 0.5, 'sine', 0.05);
+    i++;
+    bgmTimer = setTimeout(play, 650);
+  };
+  play();
+}
+function stopBGM() {
+  if (bgmTimer) { clearTimeout(bgmTimer); bgmTimer = null; }
+}
+
+/* -------- 7. 五线谱 SVG 绘制 -------- */
+/**
+ * 绘制带高音谱号的五线谱，并把指定音符放在正确位置
+ */
+function drawStaff(note) {
+  const W = 520, H = 240;
+  const lineGap = 14;        // 半步像素距（line 单位 = 半步）
+  const baseY = 170;         // 第一线（line=0, E4）的 y
+  const yPos = (l) => baseY - l * lineGap;
+
+  // 五线 y 坐标
+  const lines = [0,1,2,3,4].map(i => yPos(i));
+
+  const noteX = 320;
+  const noteY = yPos(note.line);
+
+  // 加线：在整数线位置且超出五线时绘制
+  let ledgers = '';
+  // 下方加线
+  for (let l = -1; l >= note.line; l--) {
+    if (Number.isInteger(l)) {
+      const y = yPos(l);
+      ledgers += `<line x1="${noteX-18}" y1="${y}" x2="${noteX+18}" y2="${y}" stroke="#5a3a7a" stroke-width="2.5" stroke-linecap="round"/>`;
+    }
+  }
+  // 上方加线
+  for (let l = 5; l <= note.line; l++) {
+    if (Number.isInteger(l)) {
+      const y = yPos(l);
+      ledgers += `<line x1="${noteX-18}" y1="${y}" x2="${noteX+18}" y2="${y}" stroke="#5a3a7a" stroke-width="2.5" stroke-linecap="round"/>`;
+    }
+  }
+
+  // 升降号
+  let accidental = '';
+  if (note.acc === '#') {
+    accidental = `<text x="${noteX-30}" y="${noteY+8}" font-size="32" font-weight="bold" fill="#5a3a7a" text-anchor="middle">♯</text>`;
+  } else if (note.acc === 'b') {
+    accidental = `<text x="${noteX-30}" y="${noteY+8}" font-size="32" font-weight="bold" fill="#5a3a7a" text-anchor="middle">♭</text>`;
+  }
+
+  // 音符头：椭圆 + 笑脸（拟人化）
+  const noteHead = `
+    <g transform="translate(${noteX} ${noteY}) rotate(-18)">
+      <ellipse cx="0" cy="0" rx="13" ry="9.5" fill="#d63384" stroke="#7a1f55" stroke-width="1.5"/>
+    </g>
+    <g transform="translate(${noteX} ${noteY})">
+      <circle cx="-3" cy="-2" r="1.6" fill="#fff"/>
+      <circle cx="4"  cy="-2" r="1.6" fill="#fff"/>
+      <path d="M -4 2.5 Q 0 5.5 4 2.5" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    </g>
+  `;
+
+  // 符干：低音区朝上，高音区朝下
+  let stem = '';
+  if (note.line < 2) {
+    stem = `<line x1="${noteX+12}" y1="${noteY-2}" x2="${noteX+12}" y2="${noteY-55}" stroke="#7a1f55" stroke-width="2.5" stroke-linecap="round"/>`;
+  } else {
+    stem = `<line x1="${noteX-12}" y1="${noteY+2}" x2="${noteX-12}" y2="${noteY+55}" stroke="#7a1f55" stroke-width="2.5" stroke-linecap="round"/>`;
+  }
+
+  // 高音谱号（用 Unicode 𝄞）
+  const clef = `<text x="30" y="${yPos(2)+34}" font-size="110" fill="#7b3fa0" font-family="serif">𝄞</text>`;
+
+  // 五线
+  const staffLines = lines.map(y =>
+    `<line x1="15" y1="${y}" x2="${W-15}" y2="${y}" stroke="#5a3a7a" stroke-width="2" stroke-linecap="round"/>`
+  ).join('');
+
+  // 左右竖线
+  const barLines = `
+    <line x1="15"    y1="${lines[0]}" x2="15"    y2="${lines[4]}" stroke="#5a3a7a" stroke-width="2"/>
+    <line x1="${W-15}" y1="${lines[0]}" x2="${W-15}" y2="${lines[4]}" stroke="#5a3a7a" stroke-width="3"/>
+  `;
+
+  return `
+  <svg class="staff" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    ${staffLines}
+    ${barLines}
+    ${clef}
+    <g id="note-group">
+      ${ledgers}
+      ${accidental}
+      ${stem}
+      ${noteHead}
+    </g>
+  </svg>`;
+}
+
+/* -------- 8. 主渲染函数 -------- */
+const $app = document.getElementById('app');
+
+function render() {
+  if (state.screen === 'home') return renderHome();
+  if (state.screen === 'play') return renderPlay();
+  if (state.screen === 'result') return renderResult();
+}
+
+/* 主页 */
+function renderHome() {
+  stopBGM();
+  const hi = {
+    easy: getHighScore('easy'),
+    mid:  getHighScore('mid'),
+    hard: getHighScore('hard')
+  };
+  $app.innerHTML = `
+    <div class="card">
+      <h1>🎻 五线谱小冒险 🎵</h1>
+      <p class="subtitle">和音符小伙伴一起，闯关认五线谱吧！</p>
+
+      <div class="difficulty-group">
+        <button class="btn btn-mint" data-level="easy">🌱 新手村</button>
+        <div class="difficulty-desc">${LEVELS.easy.desc}　最高分：⭐ ${hi.easy}</div>
+
+        <button class="btn btn-pink" data-level="mid">🌟 进阶岛</button>
+        <div class="difficulty-desc">${LEVELS.mid.desc}　最高分：⭐ ${hi.mid}</div>
+
+        <button class="btn btn-purple" data-level="hard">🏆 挑战峰</button>
+        <div class="difficulty-desc">${LEVELS.hard.desc}　最高分：⭐ ${hi.hard}</div>
+      </div>
+
+      <div class="toggle-row">
+        <label><input type="checkbox" id="chk-timer" ${state.timerEnabled?'checked':''}/> ⏰ 开启倒计时（每题 ${TIME_PER_Q} 秒）</label>
+        <label><input type="checkbox" id="chk-bgm" ${state.bgmEnabled?'checked':''}/> 🎶 背景音乐</label>
+      </div>
+      <p class="subtitle" style="margin-top:16px;font-size:0.9rem;color:#a06fc8">提示：游戏中可以点 💡 按钮看小提琴指法哦~</p>
+    </div>
+  `;
+  $app.querySelectorAll('[data-level]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      sndClick();
+      startGame(btn.dataset.level);
+    });
+  });
+  document.getElementById('chk-timer').addEventListener('change', e=>{
+    state.timerEnabled = e.target.checked;
+  });
+  document.getElementById('chk-bgm').addEventListener('change', e=>{
+    state.bgmEnabled = e.target.checked;
+    if (state.bgmEnabled) { ensureAudio(); startBGM(); } else { stopBGM(); }
+  });
+}
+
+/* 游戏中 */
+function renderPlay() {
+  const note = state.currentNote;
+  const opts = state.options;
+  $app.innerHTML = `
+    <div class="card">
+      <div class="hud">
+        <div class="pill">🎵 第 ${state.qIndex+1} / ${TOTAL_QUESTIONS} 题</div>
+        <div class="pill">⭐ ${state.score} 分</div>
+        <button class="btn btn-sun btn-sm" id="btn-home">🏠 返回</button>
+      </div>
+      <div class="progress"><div class="progress-bar" style="width:${(state.qIndex/TOTAL_QUESTIONS)*100}%"></div></div>
+
+      <div class="staff-wrap">
+        ${drawStaff(note)}
+      </div>
+
+      ${state.timerEnabled ? `<div class="timer"><div class="timer-bar" id="timer-bar" style="width:100%"></div></div>` : ''}
+
+      <h2>这个音符叫什么呢？🤔</h2>
+
+      <div class="options">
+        ${opts.map((o)=>`<button class="opt-btn" data-opt="${o}">${o}</button>`).join('')}
+      </div>
+
+      <div class="feedback" id="feedback">&nbsp;</div>
+      <div class="hint-box" id="hint-box">💡 小提琴指法：<b id="hint-text"></b></div>
+
+      <button class="btn btn-sun btn-sm" id="btn-hint">💡 提示（指法）</button>
+    </div>
+  `;
+
+  $app.querySelectorAll('.opt-btn').forEach(b=>{
+    b.addEventListener('click', ()=>onAnswer(b));
+  });
+  document.getElementById('btn-home').addEventListener('click', ()=>{
+    sndClick(); stopTimer(); state.screen='home'; render();
+  });
+  document.getElementById('btn-hint').addEventListener('click', ()=>{
+    sndClick();
+    const hb = document.getElementById('hint-box');
+    const ht = document.getElementById('hint-text');
+    ht.textContent = note.finger;
+    hb.classList.add('show');
+  });
+
+  if (state.timerEnabled) startTimer();
+}
+
+/* 结算 */
+function renderResult() {
+  stopBGM();
+  const correct = state.correctCount;
+  let stars = 0;
+  if (correct >= 9) stars = 3;
+  else if (correct >= 6) stars = 2;
+  else if (correct >= 3) stars = 1;
+
+  setHighScore(state.level, state.score);
+  const isPerfect = correct === TOTAL_QUESTIONS;
+  if (isPerfect) spawnConfetti();
+
+  $app.innerHTML = `
+    <div class="card">
+      <h1>${isPerfect ? '🎉 满分啦！' : '太棒啦！'}</h1>
+      <p class="subtitle">${LEVELS[state.level].title} 闯关完成</p>
+      <div class="stars-row">
+        <span class="${stars>=1?'star-on':'star-off'}">⭐</span>
+        <span class="${stars>=2?'star-on':'star-off'}">⭐</span>
+        <span class="${stars>=3?'star-on':'star-off'}">⭐</span>
+      </div>
+      <h2>得分：${state.score} 分</h2>
+      <p class="subtitle">答对 ${correct} / ${TOTAL_QUESTIONS} 题　历史最高：⭐ ${getHighScore(state.level)}</p>
+      ${isPerfect ? '<p class="subtitle" style="color:#d63384;font-weight:bold">哇！你认得真准，是音乐小天才！🌸</p>' : ''}
+      <div>
+        <button class="btn btn-pink" id="btn-again">🔁 再玩一次</button>
+        <button class="btn btn-purple" id="btn-back">🏠 返回主页</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('btn-again').addEventListener('click', ()=>{
+    sndClick(); startGame(state.level);
+  });
+  document.getElementById('btn-back').addEventListener('click', ()=>{
+    sndClick(); state.screen='home'; render();
+  });
+}
+
+/* -------- 9. 游戏逻辑 -------- */
+function startGame(level) {
+  state.level = level;
+  state.qIndex = 0;
+  state.score = 0;
+  state.correctCount = 0;
+  state.screen = 'play';
+  if (state.bgmEnabled) startBGM();
+  nextQuestion();
+}
+
+function nextQuestion() {
+  stopTimer();
+  state.locked = false;
+  const pool = LEVELS[state.level].pool;
+  // 随机抽题
+  const noteId = pool[Math.floor(Math.random()*pool.length)];
+  const note = NOTES.find(n=>n.id===noteId);
+  state.currentNote = note;
+  // 生成 4 个选项：正确答案 + 3 个干扰项（音名不重复）
+  const allNames = Array.from(new Set(NOTES.map(n => n.name)));
+  const correct = note.name;
+  const distractors = allNames.filter(n => n !== correct);
+  shuffle(distractors);
+  const opts = shuffle([correct, ...distractors.slice(0, 3)]);
+  state.options = opts;
+  render();
+}
+
+function onAnswer(btn) {
+  if (state.locked) return;
+  state.locked = true;
+  stopTimer();
+  const chosen = btn.dataset.opt;
+  const correct = state.currentNote.name;
+  const fb = document.getElementById('feedback');
+  $app.querySelectorAll('.opt-btn').forEach(b=>{
+    b.disabled = true;
+    if (b.dataset.opt === correct) b.classList.add('correct');
+  });
+  if (chosen === correct) {
+    btn.classList.add('correct');
+    fb.textContent = '✨ 太棒啦！答对啦！+10 分';
+    fb.className = 'feedback good';
+    state.score += 10;
+    state.correctCount += 1;
+    sndCorrect();
+    spawnFloaters(['🌟','💖','✨','🌟']);
+    // 让 SVG 音符跳一下
+    const ng = document.getElementById('note-group');
+    if (ng) ng.classList.add('bounce');
+  } else {
+    btn.classList.add('wrong');
+    fb.textContent = `🌸 没关系~ 正确答案是 ${correct}`;
+    fb.className = 'feedback bad';
+    sndWrong();
+  }
+  // 1.5 秒后下一题
+  setTimeout(()=>{
+    state.qIndex += 1;
+    if (state.qIndex >= TOTAL_QUESTIONS) {
+      state.screen = 'result';
+      render();
+    } else {
+      nextQuestion();
+    }
+  }, 1500);
+}
+
+/* 倒计时 */
+function startTimer() {
+  stopTimer();
+  const bar = document.getElementById('timer-bar');
+  if (!bar) return;
+  bar.style.transition = 'none';
+  bar.style.width = '100%';
+  void bar.offsetWidth;
+  bar.style.transition = `width ${TIME_PER_Q}s linear`;
+  bar.style.width = '0%';
+  state.timerHandle = setTimeout(()=>{
+    if (state.locked) return;
+    state.locked = true;
+    const correct = state.currentNote.name;
+    $app.querySelectorAll('.opt-btn').forEach(b=>{
+      b.disabled = true;
+      if (b.dataset.opt === correct) b.classList.add('correct');
+    });
+    const fb = document.getElementById('feedback');
+    fb.textContent = `⏰ 时间到啦~ 正确答案是 ${correct}`;
+    fb.className = 'feedback bad';
+    sndWrong();
+    setTimeout(()=>{
+      state.qIndex += 1;
+      if (state.qIndex >= TOTAL_QUESTIONS) { state.screen='result'; render(); }
+      else nextQuestion();
+    }, 1500);
+  }, TIME_PER_Q * 1000);
+}
+function stopTimer() {
+  if (state.timerHandle) { clearTimeout(state.timerHandle); state.timerHandle = null; }
+}
+
+/* -------- 10. 辅助函数 -------- */
+function shuffle(arr) {
+  for (let i=arr.length-1;i>0;i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+
+/* 飘浮的星星/爱心 */
+function spawnFloaters(emojis) {
+  emojis.forEach((e,i)=>{
+    setTimeout(()=>{
+      const el = document.createElement('div');
+      el.className = 'floater';
+      el.textContent = e;
+      el.style.left = (30 + Math.random()*40) + '%';
+      el.style.top  = (40 + Math.random()*20) + '%';
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(), 1700);
+    }, i*120);
+  });
+}
+
+/* 满分撒花 */
+function spawnConfetti() {
+  const colors = ['#ff8ac4','#b48dee','#7fe7c4','#ffd479','#ff7a7a','#8a5fd6'];
+  for (let i=0;i<80;i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random()*100 + 'vw';
+    c.style.background = colors[i % colors.length];
+    c.style.animationDuration = (2 + Math.random()*2.5) + 's';
+    c.style.animationDelay = (Math.random()*0.8) + 's';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(), 5000);
+  }
+}
+
+/* -------- 11. 启动 -------- */
+render();
+</script>
+</body>
+</html>
